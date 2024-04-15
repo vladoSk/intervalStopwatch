@@ -1,0 +1,14 @@
+<layout id="MainLayout">
+	<label id="mainTime" text="AHOJ" 
+    color="Gfx.COLOR_WHITE" x="center" y="15" font="Gfx.FONT_LARGE" justification="Gfx.TEXT_JUSTIFY_CENTER" />
+    <label id="timer0" text="1" color="Gfx.COLOR_WHITE" x="center" y="60" font="Gfx.FONT_MEDIUM" 
+        justification="Gfx.TEXT_JUSTIFY_CENTER" />
+    <label id="timer1" text="2" color="Gfx.COLOR_WHITE" x="center" y="90" font="Gfx.FONT_MEDIUM" 
+        justification="Gfx.TEXT_JUSTIFY_CENTER" />
+    <label id="timer2" text="3" color="Gfx.COLOR_WHITE" x="center" y="120" font="Gfx.FONT_MEDIUM" 
+        justification="Gfx.TEXT_JUSTIFY_CENTER" />
+    <label id="timer3" text="4" color="Gfx.COLOR_WHITE" x="center" y="150" font="Gfx.FONT_MEDIUM" 
+        justification="Gfx.TEXT_JUSTIFY_CENTER" />
+    <label id="timer4" text="5" color="Gfx.COLOR_WHITE" x="center" y="180" font="Gfx.FONT_MEDIUM" 
+        justification="Gfx.TEXT_JUSTIFY_CENTER" />
+</layout>

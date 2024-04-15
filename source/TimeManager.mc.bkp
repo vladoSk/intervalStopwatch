@@ -1,0 +1,180 @@
+using Log4MonkeyC as Log;
+using Toybox.System as Sys;
+using Toybox.Time as Time;
+using Toybox.Timer as Timer;
+using Toybox.Attention as Attn;
+import Toybox.Lang;
+
+class Racer {
+  var startPos as Number = 0;
+  var finishPos as Number = 0;
+  var finishTime as Number = 0;
+}
+
+//! Class responsible for creating and starting/stopping [EggTimer]s
+class TimeManager {
+	static const MAX_MANAGED_RACERS_COUNT = 12;
+	static const TIMER_INCREMENT = 10;
+
+	hidden var timerCount = 0;
+	hidden var racer = new [ MAX_MANAGED_RACERS_COUNT ];
+
+	hidden var rtc = 0;
+	hidden var currentRacersCount = 0;
+	hidden var racersOnTrack = 0;
+	hidden var selectedTime;
+	hidden var racersStarted = 0;
+	hidden var racersInFinish = 0;
+	hidden var startGap;
+	hidden var clockTimer;
+	hidden var clockTimerIsRunning;
+	hidden var timeElapsed = 0;
+	hidden var countdownState = 0;
+	hidden var timerCountdown;
+	hidden var timerS1;
+	hidden var timerS2;
+	hidden var startSysTimer = 0;
+
+	//! Creates a TimerManager instance
+	//!
+	//! @param [Method] timerStartedCallback Method to call when a timer starts
+	//! @param [Method] timerStoppedCallback Method to call when a timer stops
+	//! @param [Method] timerFinishedCallback Method to call when a timer finishes
+	function initialize(clockTimer, currentRacersCount, startGap) {
+		self.currentRacersCount = currentRacersCount;
+		self.startGap = startGap;
+		self.clockTimer = clockTimer;
+		self.clockTimerIsRunning = false;
+		self.timerCountdown = new Timer.Timer();
+		self.timerS1 = new Timer.Timer();
+		self.timerS2 = new Timer.Timer();
+		for (var i=0;i<MAX_MANAGED_RACERS_COUNT;i++) {
+			racer[i] = new Racer();
+		}
+	}
+
+	//! @return [Boolean] True if a timer can be added
+	function canAddRacer() {
+		return currentRacersCount < MAX_MANAGED_RACERS_COUNT;
+	}
+
+	//! Add a timer, selecting it in the process. This timer begins in a stopped state
+	//!
+	//! @param [Number] duration, in ms
+	//! @param [Number] elapsedTime, in ms
+	function setStartGap(newStartGap) {
+		self.startGap = newStartGap;
+	}
+
+	function setCurrentRacersCount(newRacersCount) {
+		self.currentRacersCount = newRacersCount;
+	}
+	function getCurrentRacersCount() {
+		return self.currentRacersCount;
+	}
+	//! Add a timer, selecting it in the process
+	//!
+	//! @param [Number] duration, in ms
+	//! @param [Number] elapsedTime, in ms
+	//! @param [Boolean] startAutomatically if true, else begin in a stopped state
+	function setFinishTime() {
+		racer[racersInFinish].finishTime = timeElapsed - (racersInFinish * startGap*1000);
+		racer[racersInFinish].finishPos = racersInFinish;
+		Sys.print("setFinishTime: ");
+		Sys.print(racersInFinish.toString());
+		Sys.println(racer[racersInFinish].finishTime.toString());
+		++racersInFinish;
+		if (racersInFinish == currentRacersCount) {
+			clockTimer.stop();
+			clockTimerIsRunning = false;
+		}
+	}
+
+	//! @return [Number] The number of timers
+	function getFinishTime(racerNumber) {
+		return racer[racerNumber].finishTime;
+	}
+
+
+	//! Clear the  times
+	function resetFinishTimes() {
+		for (var i=0; i<MAX_MANAGED_RACERS_COUNT; i++) {
+			racer[i].startPos = 0;
+			racer[i].finishPos = 0;
+			racer[i].finishTime = 0;
+		}
+	}
+
+	function updateInternalState() {
+		timeElapsed = Sys.getTimer() - startSysTimer;		// problem with overflow?
+  }
+	function shortBeep() {	
+		if (Attn has :playTone && Sys.getDeviceSettings().tonesOn) {
+			Attn.playTone(Attn.TONE_START);
+		}
+	}
+
+	function startCountdownCallback() {
+		if (Attn has :playTone && Sys.getDeviceSettings().tonesOn) {
+			Attn.playTone(Attn.TONE_LOUD_BEEP);
+		}
+		racersOnTrack++;
+		racersStarted++;
+		if (racersStarted < currentRacersCount) {
+			var nextStart = startGap*1000*racersStarted - (Sys.getTimer() - rtc);
+			timerCountdown.start(method(:startCountdownCallback), nextStart, false);
+			if (nextStart - 1000 > 0) timerS1.start(method(:shortBeep), nextStart - 1000, false);
+			if (nextStart - 2000 > 0) timerS2.start(method(:shortBeep), nextStart - 2000, false);
+		}
+			if (countdownState == 2) {
+				countdownState=3;
+				
+				timerCountdown.stop();
+				timerCountdown.start(method(:startCountdownCallback), (startGap*1000) - 3000, false);
+				if (!clockTimerIsRunning) {
+					clockTimerIsRunning = true;
+					timeElapsed = 0;
+					startSysTimer = Sys.getTimer();
+					clockTimer.start(method(:updateInternalState), TIMER_INCREMENT, true);
+				}
+			} else {
+				countdownState=0;
+				if (racersOnTrack < currentRacersCount) {
+					timerCountdown.start(method(:startCountdownCallback), 1000, true);
+				}
+			}
+	}
+
+	function startStopwatchIn3sec() {
+		racersStarted = 0;
+		racersInFinish = 0;
+		countdownState = 0;
+		timerS1.start(method(:shortBeep), 1000, false);
+		timerS2.start(method(:shortBeep), 2000, false);
+		timerCountdown.start(method(:startCountdownCallback), 3000, false);
+		rtc = Sys.getTimer() + 3000;
+	}
+
+	function getMainStopwatchTime() {
+	//	if (clockTimerIsRunning) {
+			return timeElapsed - (racersInFinish * startGap*1000);
+	//	}
+	//	return 0;
+	}
+
+	function getStopwatchTimeNo(number as Number) {
+		if (number < racersInFinish) {
+			return racer[number].finishTime;
+		} else {
+			return 0;
+		}
+	}
+
+	function isStopwatchRunning() {
+		return clockTimerIsRunning; 
+	}
+
+	function getRacersInFinish() {
+		return racersInFinish;
+	}
+}
