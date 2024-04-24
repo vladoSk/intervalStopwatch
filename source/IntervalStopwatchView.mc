@@ -4,7 +4,7 @@ using Toybox.System as Sys;
 using Toybox.Time.Gregorian as Cal;
 import Toybox.Lang;
 
-const VERSION = "1.02";
+const VERSION = "1.03";
 
 const tfSSSUU = 1;		// M - min, S - sec, U - microsec  134.12
 const tfMMSSU = 2;		// 11:23.3
@@ -37,7 +37,6 @@ class IntervalStopwatchView extends Ui.View {
 	hidden var menuPage = 0;
 	hidden var timeFormat = tfSSSUU;
   hidden var menu as Array <MenuDefinition> = new Array<MenuDefinition> [ 3 ];
-	hidden var displayTimes = 5;
 
 	//! Creates an EggTimerView
 	//!
@@ -55,7 +54,7 @@ class IntervalStopwatchView extends Ui.View {
 		self.refreshTimer = new Timer.Timer();
 		separatorLabel = new Rez.Drawables.clockSeparator();
 		menu[0] = new MenuDefinition(1,100,1,"Racers count");
-		menu[1] = new MenuDefinition(0,60,5,"Start gap");
+		menu[1] = new MenuDefinition(0,900,5,"Start gap");
 		menu[2] = new MenuDefinition(0,1,1, "3sec countdown");
 	}
 
@@ -199,7 +198,20 @@ class IntervalStopwatchView extends Ui.View {
 			if (timerDrawable != null) {
 				timerDrawable.setText(timeRemainingText);
 			}
-			for (var i=0;i<displayTimes; i++) {
+			if (!manager.showMessage().equals("")) {
+				timerDrawable = (findDrawableById("timer0") as Toybox.WatchUi.Text);
+				timerDrawable.setText("");
+				timerDrawable = (findDrawableById("timer1") as Toybox.WatchUi.Text);
+				timerDrawable.setText(manager.showMessage());
+				timerDrawable = (findDrawableById("timer2") as Toybox.WatchUi.Text);
+				timerDrawable.setText("");
+				timerDrawable = (findDrawableById("timer3") as Toybox.WatchUi.Text);
+				timerDrawable.setText("<- Yes     ");
+				timerDrawable = (findDrawableById("timer4") as Toybox.WatchUi.Text);
+				timerDrawable.setText("");
+				return;
+			} 
+			for (var i=0;i<manager.getDisplayTimesCount(); i++) {
 				timeRemainingText = (i+timesOffset).toString()+". "+getTimeFormatted(manager.getStopwatchTimeNo(i+timesOffset-1));
 				timerDrawable = (findDrawableById("timer"+i.toString()) as Toybox.WatchUi.Text);
 				if (timerDrawable != null) {
@@ -214,7 +226,7 @@ class IntervalStopwatchView extends Ui.View {
 				timerDrawable.setText(waitText);
 			}
 			if (manager.getRacersInFinish() > 0) {
-				for (var i=0;i<displayTimes; i++) {
+				for (var i=0;i<manager.getDisplayTimesCount(); i++) {
 					timeRemainingText = (i+timesOffset).toString()+". "+getTimeFormatted(manager.getStopwatchTimeNo(i+timesOffset-1));
 					timerDrawable = (findDrawableById("timer"+i.toString()) as Toybox.WatchUi.Text);
 					if (timerDrawable != null) {

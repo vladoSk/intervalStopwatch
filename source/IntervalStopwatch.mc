@@ -139,27 +139,34 @@ class IntervalStopwatchDelegate extends Ui.BehaviorDelegate {
 		} 
 		if (Ui.KEY_ENTER == evt.getKey()) {
 			if (manager.isStopwatchRunning()) {
-				var racersInFinish = manager.setFinishTime();
-				view.setOffset(racersInFinish);
+				Sys.print("MainStopwatchTime: ");
+				Sys.println(manager.getMainStopwatchTime());
+				if (manager.getMainStopwatchTime()>0) {
+					var racersInFinish = manager.setFinishTime();
+					view.setOffset(racersInFinish);
+				}
+				return true;
 			} else {
-				Sys.println("Start in 3s");
-				manager.startStopwatchIn3sec();
-			}
-		} else if (Ui.KEY_ESC == evt.getKey()) {
-			if (manager.isStopwatchRunning()) {
-				manager.resetFinishTimes();
-				view.hideMenu();
-				Sys.println("Race canceled");
-			} else {
-				// Exit application
-				Ui.popView(Ui.SLIDE_IMMEDIATE);
+				if (manager.getState3Sec()) {
+					Sys.println("Start in 3s");
+					manager.startStopwatchIn3sec(1);
+				} else {
+					Sys.println("Start now");
+					manager.startStopwatchIn3sec(0);
+				}
 			}
 		} else if (Ui.KEY_UP == evt.getKey()) {
 			Sys.println("Upkey");
 			view.changeOffset(1);
 		} else if (Ui.KEY_DOWN == evt.getKey()) {
 			Sys.println("Downkey");
-			view.changeOffset(-1);
+			if (!manager.showMessage().equals("")) {
+				manager.resetFinishTimes();
+				view.hideMenu();
+				Sys.println("Race canceled");
+			} else {
+				view.changeOffset(-1);
+			}
 		}
 		view.updateOnTimer();
 		return true;
@@ -178,9 +185,14 @@ class IntervalStopwatchDelegate extends Ui.BehaviorDelegate {
 			view.hideMenu();
 		} else {
 			if (manager.isStopwatchRunning()) {
-				manager.resetFinishTimes();
-				view.hideMenu();
-				Sys.println("Race canceled");
+				if (manager.showMessage().equals("")) {
+					manager.setMessage("Canel race?");
+				} else {
+					manager.setMessage("");
+				}
+				// manager.resetFinishTimes();
+				// view.hideMenu();
+				// Sys.println("Race canceled");
 			} else {
 				Ui.popView(Ui.SLIDE_IMMEDIATE);
 			}

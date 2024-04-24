@@ -3,6 +3,7 @@ using Toybox.System as Sys;
 using Toybox.Time as Time;
 using Toybox.Timer as Timer;
 using Toybox.Attention as Attn;
+using Toybox.Math as Math;
 import Toybox.Lang;
 
 class Racer {
@@ -31,6 +32,9 @@ class TimeManager {
 	hidden var timerCountdown;
 	hidden var startSysTimer = 0;
 	hidden var waitText= "Ready?";
+	hidden var displayTimes = 5;
+	hidden var cancelMessageAt = 0;
+	hidden var messageText = "";
 
 	//! Creates a TimerManager instance
 	//!
@@ -65,7 +69,13 @@ class TimeManager {
 		return startGap;
 	}
 
+	function getDisplayTimesCount() {
+		return displayTimes;
+	}
+
 	function setCurrentRacersCount(newRacersCount) {
+		if (newRacersCount < 5) { self.displayTimes = newRacersCount; }
+		else { self.displayTimes = 5; }
 		self.currentRacersCount = newRacersCount;
 	}
 	function getCurrentRacersCount() {
@@ -158,21 +168,25 @@ class TimeManager {
 		}
 	}
 
-	function startStopwatchIn3sec() {
-		if (waitText == "Finished") {
+	function startStopwatchIn3sec(delay3s) {
+		if (waitText.equals("Finished")) {
+			resetFinishTimes();
 			waitText = "Ready?";
 			return;
 		}
 		racersStarted = 0;
 		racersInFinish = 0;
-		timerCountdown.start(method(:shortBeep1), 1000, false);
-	// 	timerS2.start(method(:shortBeep2), 2000, false);
-	//	timerCountdown.start(method(:startCountdownCallback), 3000, false);
-		startSysTimer = Sys.getTimer() + 3000;
+		if (delay3s) {
+			timerCountdown.start(method(:shortBeep1), 1000, false);
+			startSysTimer = Sys.getTimer() + 3000;
+		} else {
+			startCountdownCallback();
+			startSysTimer = Sys.getTimer();
+		}
 	}
 
 	function getMainStopwatchTime() {
-		if (clockTimerIsRunning) {
+		if (clockTimerIsRunning && Sys.getTimer() - (startSysTimer + (racersInFinish * startGap*1000)) > 0) {
 			// return timeElapsed - (racersInFinish * startGap*1000);
 			return Sys.getTimer() - (startSysTimer + (racersInFinish * startGap*1000));
 		}
@@ -197,5 +211,19 @@ class TimeManager {
 
 	function getWaitText() {
 		return waitText;
+	}
+	function showMessage() {
+		if (cancelMessageAt > Sys.getTimer() && !messageText.equals("")) { 
+			Sys.println("Show message");
+			return messageText; 
+		}
+		messageText = "";
+		return "";
+	}
+
+	function setMessage(text) {
+		cancelMessageAt = Sys.getTimer() + 3000;
+		messageText = text;
+		Sys.println("Message set to: "+text);
 	}
 }
